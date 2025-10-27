@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 AChat - Защищённый AI Мессенджер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .result.danger {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .result.warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .result.info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .result h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .result-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 4px;
+        }
+
+        .suggestion {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .emotion-bar {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .emotion-label {
+            width: 120px;
+            font-weight: 600;
+        }
+
+        .emotion-progress {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+
+        .emotion-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .emotion-value {
+            width: 50px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 4px;
+        }
+
+        .badge.success { background: #28a745; color: white; }
+        .badge.danger { background: #dc3545; color: white; }
+        .badge.warning { background: #ffc107; color: #333; }
+        .badge.info { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 AChat</h1>
+            <p>Защищённый AI Мессенджер</p>
+        </div>
+
+        <div class="content">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('moderation')">🛡️ Модерация</button>
+                <button class="tab" onclick="switchTab('assistant')">🤖 AI Помощник</button>
+                <button class="tab" onclick="switchTab('sentiment')">😊 Эмоции</button>
+                <button class="tab" onclick="switchTab('responder')">🔄 Автоответ</button>
+            </div>
+
+            <!-- Модерация -->
+            <div id="moderation" class="tab-content active">
+                <h2>🛡️ Проверка модерации</h2>
+                <p style="color: #666; margin-bottom: 20px;">AI проверит твоё сообщение на безопасность</p>
+
+                <div class="input-group">
+                    <label>Твоё сообщение:</label>
+                    <textarea id="moderationText" placeholder="Введи сообщение для проверки..."></textarea>
+                </div>
+
+                <button class="btn" onclick="checkModeration()">Проверить</button>
+
+                <div id="moderationResult" class="result"></div>
+            </div>
+
+            <!-- AI Помощник -->
+            <div id="assistant" class="tab-content">
+                <h2>🤖 AI Помощник</h2>
+                <p style="color: #666; margin-bottom: 20px;">Получи умные подсказки для ответа</p>
+
+                <div class="input-group">
+                    <label>Сообщение собеседника:</label>
+                    <textarea id="assistantText" placeholder="Что написал твой собеседник?"></textarea>
+                </div>
+
+                <button class="btn" onclick="getAssistance()">Получить подсказки</button>
+
+                <div id="assistantResult" class="result"></div>
+            </div>
+
+            <!-- Анализ эмоций -->
+            <div id="sentiment" class="tab-content">
+                <h2>😊 Анализ эмоций</h2>
+                <p style="color: #666; margin-bottom: 20px;">AI определит настроение в тексте</p>
+
+                <div class="input-group">
+                    <label>Текст для анализа:</label>
+                    <textarea id="sentimentText" placeholder="Введи текст для анализа эмоций..."></textarea>
+                </div>
+
+                <button class="btn" onclick="analyzeSentiment()">Анализировать</button>
+
+                <div id="sentimentResult" class="result"></div>
+            </div>
+
+            <!-- Автоответчик -->
+            <div id="responder" class="tab-content">
+                <h2>🔄 Автоответчик</h2>
+                <p style="color: #666; margin-bottom: 20px;">AI сгенерирует автоматический ответ</p>
+
+                <div class="input-group">
+                    <label>Входящее сообщение:</label>
+                    <textarea id="responderText" placeholder="Что тебе написали?"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Стиль ответа:</label>
+                    <select id="responderStyle" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                        <option value="friendly">Дружелюбный 😊</option>
+                        <option value="professional">Профессиональный 💼</option>
+                        <option value="casual">Неформальный 👋</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="autoRespond()">Сгенерировать ответ</button>
+
+                <div id="responderResult" class="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showLoading(resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Обрабатываю...</div>';
+            resultDiv.className = 'result show';
+        }
+
+        async function checkModeration() {
+            const text = document.getElementById('moderationText').value;
+            if (!text.trim()) {
+                alert('Введи сообщение!');
+                return;
+            }
+
+            showLoading('moderationResult');
+
+            try {
+                const response = await fetch(`${API_URL}/moderation/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: text })
+                });
+
+                const data = await response.json();
+                const resultDiv = document.getElementById('moderationResult');
+
+                const status = data.allowed ? 'success' : 'danger';
+                const icon = data.allowed ? '✅' : '❌';
+                const statusText = data.allowed ? 'РАЗРЕШЕНО' : 'ЗАБЛОКИРОВАНО';
+
+                let html = `
+                    <h3>${icon} ${statusText}</h3>
+                    <div class="result-item">
+                        <strong>📊 Оценка риска:</strong> ${(data.riskScore * 100).toFixed(0)}%
+                    </div>
+                `;
+
+                if (data.flags && data.flags.length > 0) {
+                    html += `<div class="result-item"><strong>🚩 Обнаружено:</strong> `;
+                    data.flags.forEach(flag => {
+                        html += `<span class="badge danger">${flag}</span>`;
+                    });
+                    html += `</div>`;
+                }
+
+                if (data.requiresHumanReview) {
+                    html += `<div class="result-item"><strong>👤 Требует проверки модератором</strong></div>`;
+                }
+
+                if (data.reason) {
+                    html += `<div class="result-item"><strong>💬 Причина:</strong> ${data.reason}</div>`;
+                }
+
+                resultDiv.innerHTML = html;
+                resultDiv.className = `result show ${status}`;
+            } catch (error) {
+                showError('moderationResult', 'Ошибка подключения к AI Service. Убедись что он запущен!');
+            }
+        }
+
+        async function getAssistance() {
+            const text = document.getElementById('assistantText').value;
+            if (!text.trim()) {
+                alert('Введи сообщение!');
+                return;
+            }
+
+            showLoading('assistantResult');
+
+            try {
+                const response = await fetch(`${API_URL}/assistant/suggest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, userId: 'demo-user' })
+                });
+
+                const data = await response.json();
+                const resultDiv = document.getElementById('assistantResult');
+
+                let html = `
+                    <h3>💡 AI Подсказки</h3>
+                    <div class="result-item">
+                        <strong>😊 Настроение:</strong> <span class="badge info">${data.sentiment}</span>
+                        <strong>🎭 Эмоция:</strong> <span class="badge info">${data.mood}</span>
+                    </div>
+                    <h4 style="margin-top: 15px;">Варианты ответов:</h4>
+                `;
+
+                data.suggestions.forEach((sug, i) => {
+                    html += `
+                        <div class="suggestion">
+                            <strong>${i + 1}.</strong> ${sug.text}
+                            <br>
+                            <small style="color: #666;">
+                                Тон: ${sug.tone} • Уверенность: ${(sug.confidence * 100).toFixed(0)}%
+                            </small>
+                        </div>
+                    `;
+                });
+
+                resultDiv.innerHTML = html;
+                resultDiv.className = 'result show info';
+            } catch (error) {
+                showError('assistantResult', 'Ошибка подключения к AI Service!');
+            }
+        }
+
+        async function analyzeSentiment() {
+            const text = document.getElementById('sentimentText').value;
+            if (!text.trim()) {
+                alert('Введи текст!');
+                return;
+            }
+
+            showLoading('sentimentResult');
+
+            try {
+                const response = await fetch(`${API_URL}/sentiment/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await response.json();
+                const resultDiv = document.getElementById('sentimentResult');
+
+                const sentimentEmoji = data.sentiment === 'positive' ? '😊' :
+                                     data.sentiment === 'negative' ? '😢' : '😐';
+
+                let html = `
+                    <h3>${sentimentEmoji} Настроение: ${data.sentiment.toUpperCase()}</h3>
+                    <div class="result-item">
+                        <strong>📊 Оценка:</strong> ${(data.score * 100).toFixed(0)}%
+                    </div>
+                    <h4 style="margin-top: 15px;">🎭 Детали эмоций:</h4>
+                `;
+
+                for (const [emotion, value] of Object.entries(data.emotions)) {
+                    const width = (value * 100).toFixed(0);
+                    html += `
+                        <div class="emotion-bar">
+                            <div class="emotion-label">${emotion}:</div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill" style="width: ${width}%"></div>
+                            </div>
+                            <div class="emotion-value">${width}%</div>
+                        </div>
+                    `;
+                }
+
+                resultDiv.innerHTML = html;
+                resultDiv.className = `result show ${data.sentiment === 'positive' ? 'success' : data.sentiment === 'negative' ? 'danger' : 'info'}`;
+            } catch (error) {
+                showError('sentimentResult', 'Ошибка подключения к AI Service!');
+            }
+        }
+
+        async function autoRespond() {
+            const text = document.getElementById('responderText').value;
+            const style = document.getElementById('responderStyle').value;
+
+            if (!text.trim()) {
+                alert('Введи сообщение!');
+                return;
+            }
+
+            showLoading('responderResult');
+
+            try {
+                const response = await fetch(`${API_URL}/assistant/auto-responder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, rules: {}, style: style })
+                });
+
+                const data = await response.json();
+                const resultDiv = document.getElementById('responderResult');
+
+                let html = `
+                    <h3>📨 Автоматический ответ</h3>
+                    <div class="suggestion">
+                        "${data.response}"
+                    </div>
+                    <div class="result-item">
+                        <small style="color: #666;">
+                            Уверенность: ${(data.confidence * 100).toFixed(0)}%
+                        </small>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = html;
+                resultDiv.className = 'result show success';
+            } catch (error) {
+                showError('responderResult', 'Ошибка подключения к AI Service!');
+            }
+        }
+
+        function showError(resultId, message) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.innerHTML = `<h3>❌ Ошибка</h3><div class="result-item">${message}</div>`;
+            resultDiv.className = 'result show danger';
+        }
+    </script>
+</body>
+</html>
