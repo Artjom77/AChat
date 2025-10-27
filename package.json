@@ -1,0 +1,31 @@
+{
+  "name": "achat",
+  "version": "1.0.0",
+  "description": "AChat - The Most Secure AI-Powered Messenger",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "backend": "npm run dev --workspace=apps/backend",
+    "frontend-web": "npm run dev --workspace=apps/frontend-web",
+    "frontend-mobile": "npm run dev --workspace=apps/frontend-mobile",
+    "ai-service": "npm run dev --workspace=apps/ai-service"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0",
+    "typescript": "^5.2.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.50.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

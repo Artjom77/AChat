@@ -1,0 +1,12 @@
+[tool.poetry]
+name = "achat-ai-service"
+version = "1.0.0"
+description = "AI Service for AChat - Moderation and Assistant"
+authors = ["AChat Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

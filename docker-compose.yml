@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: achat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: achat
+      POSTGRES_PASSWORD: achat_dev_password
+      POSTGRES_DB: achat
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - achat-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: achat-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - achat-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: achat-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: achat
+      DB_PASSWORD: achat_dev_password
+      DB_NAME: achat
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - ai-service
+    volumes:
+      - ./apps/backend:/app/apps/backend
+      - /app/node_modules
+    networks:
+      - achat-network
+
+  # AI Service (Python)
+  ai-service:
+    build:
+      context: ./apps/ai-service
+      dockerfile: Dockerfile
+    container_name: achat-ai-service
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/ai-service:/app
+    networks:
+      - achat-network
+
+  # Frontend Web (Optional - for development)
+  frontend-web:
+    build:
+      context: .
+      dockerfile: apps/frontend-web/Dockerfile
+    container_name: achat-frontend-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./apps/frontend-web:/app/apps/frontend-web
+      - /app/node_modules
+    networks:
+      - achat-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  achat-network:
+    driver: bridge
