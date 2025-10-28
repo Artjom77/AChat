@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AChat - Самый защищённый мессенджер с AI</title>
+    <meta name="description" content="Защищённый мессенджер нового поколения с AI модерацией и end-to-end шифрованием">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/messenger/manifest.json">
+    <meta name="theme-color" content="#667eea">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 20px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 20px;
+            background: #f8f9fa;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 60px;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* Auth Section */
+        .auth-section {
+            padding: 80px 20px;
+            background: white;
+        }
+
+        .auth-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+        }
+
+        .auth-container h2 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #f0f2f5;
+            padding: 5px;
+            border-radius: 15px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .auth-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #070;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* Footer */
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        footer p {
+            margin: 10px 0;
+            opacity: 0.8;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .tagline {
+                font-size: 1.1em;
+            }
+
+            .auth-container {
+                padding: 30px 20px;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="logo">🔐</div>
+            <h1>AChat</h1>
+            <p class="tagline">Самый защищённый мессенджер с AI модерацией</p>
+            <div class="cta-buttons">
+                <a href="#auth" class="btn btn-primary">Начать общение</a>
+                <a href="/messenger/" class="btn btn-secondary">Открыть приложение</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <h2>Почему AChat?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Максимальная защита</h3>
+                <p>End-to-end шифрование AES-256. Даже создатель не может прочитать твои сообщения.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI модерация</h3>
+                <p>Искусственный интеллект работает внутри защищённого анклава, блокируя незаконный контент.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>AI ассистент</h3>
+                <p>Умные подсказки ответов, анализ настроения, автоответчик и советы по общению.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Быстро и легко</h3>
+                <p>Мгновенная доставка сообщений. Работает на всех платформах: телефон, планшет, компьютер.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎁</div>
+                <h3>Подарки и стикеры</h3>
+                <p>Отправляй виртуальные подарки друзьям и используй уникальные стикеры.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>PWA приложение</h3>
+                <p>Установи на главный экран как обычное приложение. Работает офлайн!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Auth Section -->
+    <section class="auth-section" id="auth">
+        <div class="auth-container">
+            <h2>Войти в AChat</h2>
+
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchTab('login')">Вход</div>
+                <div class="auth-tab" onclick="switchTab('register')">Регистрация</div>
+            </div>
+
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Пароль:</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Войти
+                    <span id="loginSpinner" class="spinner hidden"></span>
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>Имя пользователя:</label>
+                    <input type="text" id="registerUsername" placeholder="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Отображаемое имя:</label>
+                    <input type="text" id="registerDisplayName" placeholder="Ваше имя" required>
+                </div>
+                <div class="form-group">
+                    <label>Пароль:</label>
+                    <input type="password" id="registerPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Зарегистрироваться
+                    <span id="registerSpinner" class="spinner hidden"></span>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p><strong>AChat</strong> - Защищённый мессенджер нового поколения</p>
+        <p>© 2025 AChat. Безопасность превыше всего.</p>
+        <p><a href="https://github.com/Artjom77/AChat" target="_blank">GitHub</a> | <a href="/PWA_INSTALL.md">Установка PWA</a></p>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.auth-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                tabs[1].classList.add('active');
+            }
+
+            hideMessages();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const spinner = document.getElementById('loginSpinner');
+
+            spinner.classList.remove('hidden');
+            hideMessages();
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Ошибка входа');
+                }
+
+                const data = await response.json();
+
+                // Save token and redirect
+                localStorage.setItem('achat_token', data.token);
+                localStorage.setItem('achat_user', JSON.stringify(data.user));
+
+                showSuccess('✅ Вход выполнен! Перенаправление...');
+                setTimeout(() => {
+                    window.location.href = '/messenger/';
+                }, 1000);
+
+            } catch (error) {
+                showError(error.message || 'Не удалось подключиться к серверу. Убедись, что backend запущен.');
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const displayName = document.getElementById('registerDisplayName').value;
+            const password = document.getElementById('registerPassword').value;
+            const spinner = document.getElementById('registerSpinner');
+
+            spinner.classList.remove('hidden');
+            hideMessages();
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, displayName, password })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Ошибка регистрации');
+                }
+
+                const data = await response.json();
+
+                // Save token and redirect
+                localStorage.setItem('achat_token', data.token);
+                localStorage.setItem('achat_user', JSON.stringify(data.user));
+
+                showSuccess('✅ Регистрация успешна! Перенаправление...');
+                setTimeout(() => {
+                    window.location.href = '/messenger/';
+                }, 1000);
+
+            } catch (error) {
+                showError(error.message || 'Не удалось подключиться к серверу. Убедись, что backend запущен.');
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
