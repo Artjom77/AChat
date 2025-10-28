@@ -541,6 +541,27 @@
 
                 <div id="usersTab" class="sidebar-content" style="display: none;">
                     <div id="usersList"></div>
+
+                    <!-- Empty state for contacts (shown when no friends) -->
+                    <div id="useInviteSection" class="empty-contacts" style="display: none;">
+                        <div class="empty-contacts-icon">👋</div>
+                        <h3>Нет контактов</h3>
+                        <p>Найди друзей или используй пригласительный код!</p>
+
+                        <input
+                            type="text"
+                            id="inviteCodeInput"
+                            class="search-input"
+                            placeholder="Введи пригласительный код..."
+                            style="margin: 20px 0;"
+                        >
+                        <button class="btn-action btn-add-friend" onclick="useInviteCode()">✅ Использовать код</button>
+
+                        <div style="margin-top: 20px;">
+                            <button class="btn-action btn-add-friend" onclick="openAddFriendModal()">🔍 Найти друзей</button>
+                            <button class="btn-action btn-invite-friend" onclick="openInviteFriendModal()">📤 Пригласить друга</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -680,6 +701,9 @@
             loadConversations();
             loadUsers();
             connectWebSocket();
+
+            // Initialize contacts system
+            initContactsSystem(API_URL, authToken);
         }
 
         // WebSocket
@@ -716,6 +740,11 @@
             } else {
                 document.getElementById('chatsTab').style.display = 'none';
                 document.getElementById('usersTab').style.display = 'block';
+
+                // Load friends when switching to users tab
+                if (typeof updateFriendsTab === 'function') {
+                    updateFriendsTab();
+                }
             }
         }
 
@@ -799,6 +828,11 @@
             } catch (error) {
                 console.error('Error starting conversation:', error);
             }
+        }
+
+        // Alias for contacts system compatibility
+        function startDirectConversation(userId) {
+            return startConversation(userId);
         }
 
         async function openConversation(conversationId, userId) {
@@ -963,6 +997,21 @@
                 }, 5000);
             });
         });
+    </script>
+
+    <!-- Contacts System Integration -->
+    <script src="contacts.js"></script>
+    <script src="contacts-integration.js"></script>
+
+    <!-- Load contacts UI components -->
+    <script>
+        fetch('contacts-ui.html')
+            .then(response => response.text())
+            .then(html => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                document.body.appendChild(tempDiv);
+            });
     </script>
 </body>
 </html>

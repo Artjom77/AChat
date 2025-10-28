@@ -44,6 +44,11 @@ analytics_db: List[dict] = []  # Stores all chat analytics
 blocked_users_db: Dict[str, dict] = {}  # Blocked users with reasons
 moderation_logs_db: List[dict] = []  # Moderation action logs
 
+# Friends and contacts storage
+friend_requests_db: List[dict] = []  # Friend requests
+friends_db: Dict[str, List[str]] = {}  # user_id -> list of friend user_ids
+invite_codes_db: Dict[str, dict] = {}  # Invite codes for sharing
+
 # Models
 class RegisterRequest(BaseModel):
     username: str
@@ -59,6 +64,12 @@ class SendMessageRequest(BaseModel):
     conversationId: str
     content: str
     type: str = "text"
+
+class FriendRequestModel(BaseModel):
+    targetUserId: str
+
+class FriendActionModel(BaseModel):
+    requestId: str
 
 # Helper functions
 def hash_password(password: str) -> str:
@@ -661,6 +672,340 @@ async def export_analytics(
         }
     else:
         raise HTTPException(status_code=400, detail="Only JSON format supported")
+
+# ============================================================================
+# FRIENDS AND CONTACTS ENDPOINTS
+# ============================================================================
+
+@app.get("/users/search")
+async def search_users(q: str = "", authorization: str = ""):
+    """Search users by username or email"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    query = q.lower().strip()
+    if len(query) < 2:
+        return {'users': []}
+
+    # Search users (exclude current user and blocked users)
+    results = []
+    for user_id, user in users_db.items():
+        if user_id == current_user['id']:
+            continue
+        if user.get('blocked'):
+            continue
+
+        username = user.get('username', '').lower()
+        email = user.get('email', '').lower()
+
+        if query in username or query in email:
+            # Check if already friends
+            current_friends = friends_db.get(current_user['id'], [])
+            is_friend = user_id in current_friends
+
+            # Check if friend request pending
+            pending_request = None
+            for req in friend_requests_db:
+                if ((req['fromUserId'] == current_user['id'] and req['toUserId'] == user_id) or
+                    (req['fromUserId'] == user_id and req['toUserId'] == current_user['id'])) and \
+                   req['status'] == 'pending':
+                    pending_request = req
+                    break
+
+            results.append({
+                'id': user_id,
+                'username': user.get('username'),
+                'displayName': user.get('displayName'),
+                'email': user.get('email'),
+                'isFriend': is_friend,
+                'hasPendingRequest': pending_request is not None,
+                'requestDirection': 'outgoing' if pending_request and pending_request['fromUserId'] == current_user['id'] else 'incoming' if pending_request else None
+            })
+
+    return {'users': results[:20]}  # Limit to 20 results
+
+@app.post("/friends/request")
+async def send_friend_request(req: FriendRequestModel, authorization: str = ""):
+    """Send a friend request to another user"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    target_user = users_db.get(req.targetUserId)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if req.targetUserId == current_user['id']:
+        raise HTTPException(status_code=400, detail="Cannot add yourself as friend")
+
+    # Check if already friends
+    current_friends = friends_db.get(current_user['id'], [])
+    if req.targetUserId in current_friends:
+        raise HTTPException(status_code=400, detail="Already friends")
+
+    # Check if request already exists
+    for existing_req in friend_requests_db:
+        if ((existing_req['fromUserId'] == current_user['id'] and existing_req['toUserId'] == req.targetUserId) or
+            (existing_req['fromUserId'] == req.targetUserId and existing_req['toUserId'] == current_user['id'])) and \
+           existing_req['status'] == 'pending':
+            raise HTTPException(status_code=400, detail="Friend request already pending")
+
+    # Create friend request
+    friend_request = {
+        'id': str(uuid.uuid4()),
+        'fromUserId': current_user['id'],
+        'toUserId': req.targetUserId,
+        'status': 'pending',
+        'createdAt': datetime.now().isoformat()
+    }
+    friend_requests_db.append(friend_request)
+
+    return {
+        'success': True,
+        'request': friend_request
+    }
+
+@app.post("/friends/accept")
+async def accept_friend_request(req: FriendActionModel, authorization: str = ""):
+    """Accept a friend request"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Find the friend request
+    friend_request = None
+    for req_item in friend_requests_db:
+        if req_item['id'] == req.requestId:
+            friend_request = req_item
+            break
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+
+    if friend_request['toUserId'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized to accept this request")
+
+    if friend_request['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+
+    # Update request status
+    friend_request['status'] = 'accepted'
+    friend_request['acceptedAt'] = datetime.now().isoformat()
+
+    # Add to friends lists (bidirectional)
+    from_user_id = friend_request['fromUserId']
+    to_user_id = friend_request['toUserId']
+
+    if from_user_id not in friends_db:
+        friends_db[from_user_id] = []
+    if to_user_id not in friends_db:
+        friends_db[to_user_id] = []
+
+    if to_user_id not in friends_db[from_user_id]:
+        friends_db[from_user_id].append(to_user_id)
+    if from_user_id not in friends_db[to_user_id]:
+        friends_db[to_user_id].append(from_user_id)
+
+    return {
+        'success': True,
+        'message': 'Friend request accepted'
+    }
+
+@app.post("/friends/reject")
+async def reject_friend_request(req: FriendActionModel, authorization: str = ""):
+    """Reject a friend request"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Find the friend request
+    friend_request = None
+    for req_item in friend_requests_db:
+        if req_item['id'] == req.requestId:
+            friend_request = req_item
+            break
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+
+    if friend_request['toUserId'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized to reject this request")
+
+    if friend_request['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+
+    # Update request status
+    friend_request['status'] = 'rejected'
+    friend_request['rejectedAt'] = datetime.now().isoformat()
+
+    return {
+        'success': True,
+        'message': 'Friend request rejected'
+    }
+
+@app.get("/friends")
+async def get_friends(authorization: str = ""):
+    """Get list of friends"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    friend_ids = friends_db.get(current_user['id'], [])
+    friends_list = []
+
+    for friend_id in friend_ids:
+        friend = users_db.get(friend_id)
+        if friend:
+            friends_list.append({
+                'id': friend_id,
+                'username': friend.get('username'),
+                'displayName': friend.get('displayName'),
+                'email': friend.get('email')
+            })
+
+    return {'friends': friends_list}
+
+@app.get("/friends/requests")
+async def get_friend_requests(authorization: str = ""):
+    """Get incoming friend requests"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    incoming_requests = []
+    for req in friend_requests_db:
+        if req['toUserId'] == current_user['id'] and req['status'] == 'pending':
+            from_user = users_db.get(req['fromUserId'])
+            if from_user:
+                incoming_requests.append({
+                    'id': req['id'],
+                    'from': {
+                        'id': req['fromUserId'],
+                        'username': from_user.get('username'),
+                        'displayName': from_user.get('displayName')
+                    },
+                    'createdAt': req['createdAt']
+                })
+
+    return {'requests': incoming_requests}
+
+@app.post("/invite/create")
+async def create_invite_code(authorization: str = ""):
+    """Create an invite code"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Generate unique invite code
+    invite_code = str(uuid.uuid4())[:8].upper()
+
+    invite_codes_db[invite_code] = {
+        'code': invite_code,
+        'createdBy': current_user['id'],
+        'createdAt': datetime.now().isoformat(),
+        'usedBy': [],
+        'maxUses': 10,  # Can be used 10 times
+        'expiresAt': (datetime.now() + timedelta(days=30)).isoformat()
+    }
+
+    return {
+        'code': invite_code,
+        'shareUrl': f"https://achat.app/invite/{invite_code}"
+    }
+
+@app.post("/invite/use")
+async def use_invite_code(code: str, authorization: str = ""):
+    """Use an invite code to auto-add as friend"""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token = authorization.replace("Bearer ", "")
+    current_user = get_user_from_token(token)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    invite = invite_codes_db.get(code.upper())
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invalid invite code")
+
+    # Check expiration
+    if datetime.fromisoformat(invite['expiresAt']) < datetime.now():
+        raise HTTPException(status_code=400, detail="Invite code expired")
+
+    # Check max uses
+    if len(invite['usedBy']) >= invite['maxUses']:
+        raise HTTPException(status_code=400, detail="Invite code limit reached")
+
+    # Check if already used by this user
+    if current_user['id'] in invite['usedBy']:
+        raise HTTPException(status_code=400, detail="You already used this invite")
+
+    creator_id = invite['createdBy']
+    if creator_id == current_user['id']:
+        raise HTTPException(status_code=400, detail="Cannot use your own invite")
+
+    # Add as friends automatically
+    if creator_id not in friends_db:
+        friends_db[creator_id] = []
+    if current_user['id'] not in friends_db:
+        friends_db[current_user['id']] = []
+
+    if current_user['id'] not in friends_db[creator_id]:
+        friends_db[creator_id].append(current_user['id'])
+    if creator_id not in friends_db[current_user['id']]:
+        friends_db[current_user['id']].append(creator_id)
+
+    # Mark as used
+    invite['usedBy'].append(current_user['id'])
+
+    creator = users_db.get(creator_id)
+
+    return {
+        'success': True,
+        'message': f"You are now friends with {creator.get('username')}!",
+        'friend': {
+            'id': creator_id,
+            'username': creator.get('username'),
+            'displayName': creator.get('displayName')
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn

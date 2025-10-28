@@ -1,0 +1,368 @@
+<!-- AChat Contacts UI Components -->
+<!-- Модальные окна и UI элементы для системы контактов -->
+
+<style>
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+/* Search box */
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1em;
+    margin-bottom: 20px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* User list items */
+.user-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+
+.user-item:hover {
+    background: #f5f5f5;
+}
+
+.user-avatar-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.user-username {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.user-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-accept {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-accept:hover {
+    background: #45a049;
+}
+
+.btn-reject {
+    background: #f44336;
+    color: white;
+}
+
+.btn-reject:hover {
+    background: #da190b;
+}
+
+.btn-pending {
+    background: #e0e0e0;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.btn-friend {
+    background: #2196F3;
+    color: white;
+}
+
+/* Empty state */
+.empty-contacts {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.empty-contacts-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+}
+
+.empty-contacts h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-contacts p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Friend request badge */
+.friend-request-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #f44336;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+/* Invite code display */
+.invite-code-display {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.invite-code {
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+    letter-spacing: 4px;
+    margin: 10px 0;
+    user-select: all;
+}
+
+.invite-url {
+    color: #666;
+    font-size: 0.9em;
+    word-break: break-all;
+    user-select: all;
+}
+
+/* Action buttons in sidebar */
+.sidebar-actions {
+    padding: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-action {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-add-friend {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-add-friend:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-invite-friend {
+    background: #fff;
+    border: 2px solid #667eea;
+    color: #667eea;
+}
+
+.btn-invite-friend:hover {
+    background: #f0f2f5;
+}
+</style>
+
+<!-- Add Friend Modal -->
+<div id="addFriendModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Найти друзей</h2>
+            <button class="modal-close" onclick="closeAddFriendModal()">×</button>
+        </div>
+
+        <input
+            type="text"
+            id="userSearchInput"
+            class="search-input"
+            placeholder="Поиск по username или email..."
+            oninput="searchUsersDebounced()"
+        >
+
+        <div id="searchResults"></div>
+
+        <div id="emptySearch" class="empty-contacts" style="display: none;">
+            <div class="empty-contacts-icon">🔍</div>
+            <h3>Введи имя или email</h3>
+            <p>Найди друзей, которые уже используют AChat</p>
+        </div>
+    </div>
+</div>
+
+<!-- Friend Requests Modal -->
+<div id="friendRequestsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Запросы в друзья</h2>
+            <button class="modal-close" onclick="closeFriendRequestsModal()">×</button>
+        </div>
+
+        <div id="requestsList"></div>
+
+        <div id="emptyRequests" class="empty-contacts" style="display: none;">
+            <div class="empty-contacts-icon">📭</div>
+            <h3>Нет новых запросов</h3>
+            <p>Когда кто-то добавит тебя в друзья, увидишь здесь</p>
+        </div>
+    </div>
+</div>
+
+<!-- Invite Friend Modal -->
+<div id="inviteFriendModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Пригласить друга</h2>
+            <button class="modal-close" onclick="closeInviteFriendModal()">×</button>
+        </div>
+
+        <p style="color: #666; margin-bottom: 20px;">
+            Поделись этим кодом или ссылкой с друзьями. Когда они зарегистрируются и введут код, вы автоматически станете друзьями!
+        </p>
+
+        <div class="invite-code-display">
+            <div style="color: #666; font-size: 0.9em;">Пригласительный код:</div>
+            <div id="inviteCode" class="invite-code">-</div>
+            <button class="btn-sm btn-add" onclick="copyInviteCode()">📋 Скопировать код</button>
+        </div>
+
+        <div class="invite-code-display">
+            <div style="color: #666; font-size: 0.9em;">Ссылка для приглашения:</div>
+            <div id="inviteUrl" class="invite-url">-</div>
+            <button class="btn-sm btn-add" onclick="copyInviteUrl()">📋 Скопировать ссылку</button>
+        </div>
+
+        <button class="btn-action btn-add-friend" onclick="shareInvite()">📤 Поделиться</button>
+    </div>
+</div>
+
+<!-- Use Invite Code Section (add to sidebar) -->
+<div id="useInviteSection" class="empty-contacts" style="display: none;">
+    <div class="empty-contacts-icon">👋</div>
+    <h3>Нет контактов</h3>
+    <p>Найди друзей или используй пригласительный код!</p>
+
+    <input
+        type="text"
+        id="inviteCodeInput"
+        class="search-input"
+        placeholder="Введи пригласительный код..."
+        style="margin: 20px 0;"
+    >
+    <button class="btn-action btn-add-friend" onclick="useInviteCode()">✅ Использовать код</button>
+
+    <div style="margin-top: 20px;">
+        <button class="btn-action btn-add-friend" onclick="openAddFriendModal()">🔍 Найти друзей</button>
+        <button class="btn-action btn-invite-friend" onclick="openInviteFriendModal()">📤 Пригласить друга</button>
+    </div>
+</div>
