@@ -12,6 +12,13 @@ AI assistant that helps users with conversations:
 
 import logging
 from typing import Dict, List, Optional, Any
+import os
+from anthropic import Anthropic
+from dotenv import load_dotenv
+import json
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +28,21 @@ class ConversationAssistant:
 
     def __init__(self):
         self.initialized = False
+        self.use_ai = os.getenv('ANTHROPIC_API_KEY') is not None
+
+        if self.use_ai:
+            self.client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            self.model = os.getenv('AI_MODEL', 'claude-3-5-sonnet-20241022')
 
     async def initialize(self):
         """Initialize AI models"""
         logger.info("Initializing Conversation Assistant...")
 
         try:
-            # In production, load actual AI models here:
-            # - GPT-4 / Claude for conversation understanding
-            # - Sentiment analysis models
-            # - Emotion detection models
-
-            logger.info("✅ Conversation Assistant initialized")
+            if self.use_ai:
+                logger.info("✅ Conversation Assistant initialized (Claude AI mode)")
+            else:
+                logger.info("✅ Conversation Assistant initialized (basic mode)")
 
             self.initialized = True
 
@@ -63,10 +73,101 @@ class ConversationAssistant:
         if not self.initialized:
             await self.initialize()
 
+        # Use Claude AI if available
+        if self.use_ai:
+            return await self._suggest_with_claude(message, conversation_history)
+        else:
+            return await self._suggest_basic(message, conversation_history)
+
+    async def _suggest_with_claude(
+        self,
+        message: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """Generate suggestions using Claude AI"""
+        try:
+            # Build conversation context
+            context_str = ""
+            if conversation_history:
+                recent = conversation_history[-5:]  # Last 5 messages
+                context_str = "\n".join([
+                    f"{msg.get('sender', 'Unknown')}: {msg.get('content', '')}"
+                    for msg in recent
+                ])
+
+            prompt = f"""You are an AI conversation assistant. Analyze the latest message and provide helpful suggestions.
+
+{f"Recent conversation:{context_str}" if context_str else ""}
+
+Latest message: "{message}"
+
+Provide a response in this JSON format:
+{{
+  "sentiment": "positive/negative/neutral",
+  "mood": "happy/sad/angry/excited/calm/curious",
+  "suggestions": [
+    {{
+      "text": "suggested response 1",
+      "confidence": 0.9,
+      "reasoning": "why this is a good response",
+      "tone": "friendly/professional/casual/supportive"
+    }},
+    {{
+      "text": "suggested response 2",
+      "confidence": 0.8,
+      "reasoning": "why this works",
+      "tone": "tone type"
+    }},
+    {{
+      "text": "suggested response 3",
+      "confidence": 0.7,
+      "reasoning": "alternative approach",
+      "tone": "tone type"
+    }}
+  ],
+  "warnings": ["optional warning if the message seems concerning"]
+}}
+
+Provide 3 varied suggestions with different tones. Be helpful and natural."""
+
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            # Parse response
+            result_text = response.content[0].text.strip()
+
+            # Extract JSON
+            if '```json' in result_text:
+                result_text = result_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in result_text:
+                result_text = result_text.split('```')[1].split('```')[0].strip()
+
+            result = json.loads(result_text)
+
+            # Add context
+            result['context'] = {'ai_powered': True}
+
+            logger.info(f"Claude assistant result: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Claude assistant error: {e}")
+            # Fallback to basic mode
+            return await self._suggest_basic(message, conversation_history)
+
+    async def _suggest_basic(
+        self,
+        message: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """Basic suggestions (fallback)"""
         # Analyze current message
         sentiment = await self.analyze_sentiment(message)
 
-        # Generate suggestions based on context
+        # Generate suggestions
         suggestions = self._generate_suggestions(
             message,
             conversation_history,
@@ -80,7 +181,7 @@ class ConversationAssistant:
         conversation_context = self._build_context(
             message,
             conversation_history,
-            context
+            None
         )
 
         # Check for warnings

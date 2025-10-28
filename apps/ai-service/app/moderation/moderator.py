@@ -16,6 +16,12 @@ AI-powered content moderation system that detects:
 import re
 from typing import Dict, List, Optional, Any
 import logging
+import os
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +31,13 @@ class ContentModerator:
 
     def __init__(self):
         self.initialized = False
+        self.use_ai = os.getenv('ANTHROPIC_API_KEY') is not None
 
-        # Keyword-based detection (will be replaced with ML models)
+        if self.use_ai:
+            self.client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            self.model = os.getenv('AI_MODEL', 'claude-3-5-sonnet-20241022')
+
+        # Keyword-based detection (fallback)
         self.keywords = {
             'drugs': [
                 'cocaine', 'heroin', 'meth', 'mdma', 'ecstasy',
@@ -67,13 +78,10 @@ class ContentModerator:
         logger.info("Initializing Content Moderator...")
 
         try:
-            # In production, load actual ML models here:
-            # - Transformer-based text classifier
-            # - Image recognition models
-            # - Audio analysis models
-
-            # For now, using keyword-based approach
-            logger.info("✅ Content Moderator initialized (keyword-based mode)")
+            if self.use_ai:
+                logger.info("✅ Content Moderator initialized (Claude AI mode)")
+            else:
+                logger.info("✅ Content Moderator initialized (keyword-based mode)")
 
             self.initialized = True
 
@@ -104,7 +112,76 @@ class ContentModerator:
         if not self.initialized:
             await self.initialize()
 
-        # Convert to lowercase for analysis
+        # Use Claude AI if available, otherwise fallback to keywords
+        if self.use_ai:
+            return await self._analyze_with_claude(content)
+        else:
+            return await self._analyze_with_keywords(content)
+
+    async def _analyze_with_claude(self, content: str) -> Dict[str, Any]:
+        """Analyze content using Claude AI"""
+        try:
+            prompt = f"""Analyze the following message for moderation. Check if it contains:
+- Illegal drugs or substances
+- Weapons, violence, or threats
+- Money laundering or financial crimes
+- Child exploitation (CSAM)
+- Terrorism or extremism
+- Fraud or scams
+- Hate speech
+- Spam
+
+Message: "{content}"
+
+Respond in this exact JSON format:
+{{
+  "allowed": true/false,
+  "riskScore": 0.0-1.0,
+  "flags": ["category1", "category2"],
+  "reason": "explanation if blocked",
+  "confidence": 0.0-1.0
+}}
+
+Be strict but fair. Normal conversations should pass. Only flag genuinely problematic content."""
+
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            # Parse Claude's response
+            import json
+            result_text = response.content[0].text.strip()
+
+            # Extract JSON from response
+            if '```json' in result_text:
+                result_text = result_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in result_text:
+                result_text = result_text.split('```')[1].split('```')[0].strip()
+
+            # Try to find JSON object
+            start = result_text.find('{')
+            end = result_text.rfind('}')
+            if start != -1 and end != -1:
+                result_text = result_text[start:end+1]
+
+            result = json.loads(result_text)
+
+            # Add requiresHumanReview
+            risk_score = result.get('riskScore', 0.0)
+            result['requiresHumanReview'] = 0.5 <= risk_score < 0.7
+
+            logger.info(f"Claude moderation result: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Claude moderation error: {e}")
+            # Fallback to keyword-based
+            return await self._analyze_with_keywords(content)
+
+    async def _analyze_with_keywords(self, content: str) -> Dict[str, Any]:
+        """Analyze content using keyword detection (fallback)"""
         content_lower = content.lower()
 
         # Detect flags
@@ -153,7 +230,7 @@ class ContentModerator:
             'confidence': confidence
         }
 
-        logger.info(f"Moderation result: {result}")
+        logger.info(f"Keyword moderation result: {result}")
 
         return result
 
