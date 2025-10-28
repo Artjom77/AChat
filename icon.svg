@@ -1,0 +1,74 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e0e7ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded rectangle background -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGradient)"/>
+
+  <!-- Shield (security symbol) -->
+  <path d="M 256 80
+           L 180 110
+           L 180 220
+           C 180 290, 200 340, 256 400
+           C 312 340, 332 290, 332 220
+           L 332 110
+           Z"
+        fill="url(#shieldGradient)"
+        stroke="#667eea"
+        stroke-width="4"/>
+
+  <!-- Lock icon in center of shield -->
+  <g transform="translate(256, 220)">
+    <!-- Lock body -->
+    <rect x="-25" y="0" width="50" height="60" rx="8" fill="#667eea"/>
+
+    <!-- Lock shackle -->
+    <path d="M -20,-10
+             L -20,-30
+             C -20,-45, -10,-55, 0,-55
+             C 10,-55, 20,-45, 20,-30
+             L 20,-10"
+          fill="none"
+          stroke="#667eea"
+          stroke-width="8"
+          stroke-linecap="round"/>
+
+    <!-- Keyhole -->
+    <circle cx="0" cy="25" r="8" fill="#ffffff"/>
+    <rect x="-3" y="25" width="6" height="15" rx="2" fill="#ffffff"/>
+  </g>
+
+  <!-- Chat bubble (AI symbol) -->
+  <g transform="translate(360, 360)">
+    <circle cx="0" cy="0" r="50" fill="#ffffff" opacity="0.95"/>
+
+    <!-- AI sparkles -->
+    <circle cx="-15" cy="-10" r="6" fill="#667eea"/>
+    <circle cx="0" cy="-5" r="8" fill="#764ba2"/>
+    <circle cx="15" cy="-10" r="6" fill="#667eea"/>
+
+    <!-- Smile (friendly AI) -->
+    <path d="M -15,10 Q 0,20 15,10"
+          fill="none"
+          stroke="#667eea"
+          stroke-width="3"
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Text "A" (for AChat) -->
+  <text x="256" y="470"
+        font-family="Arial, sans-serif"
+        font-size="120"
+        font-weight="bold"
+        fill="#ffffff"
+        text-anchor="middle">A</text>
+</svg>

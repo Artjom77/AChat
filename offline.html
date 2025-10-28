@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нет соединения - AChat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            color: white;
+            max-width: 500px;
+        }
+
+        .offline-icon {
+            font-size: 120px;
+            margin-bottom: 30px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .retry-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s;
+        }
+
+        .retry-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .retry-btn:active {
+            transform: scale(0.95);
+        }
+
+        .features {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .features h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .features ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .features li {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .features li::before {
+            content: "✓ ";
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1>Нет соединения</h1>
+        <p>Проверь подключение к интернету</p>
+        <p style="font-size: 1em; opacity: 0.7;">
+            Не волнуйся! Твои сообщения сохранены и отправятся когда интернет появится.
+        </p>
+
+        <button class="retry-btn" onclick="retry()">
+            🔄 Попробовать снова
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Подключаюсь...</p>
+        </div>
+
+        <div class="features">
+            <h3>Что работает offline:</h3>
+            <ul>
+                <li>Просмотр сохранённых чатов</li>
+                <li>Чтение полученных сообщений</li>
+                <li>Написание сообщений (отправятся позже)</li>
+                <li>Просмотр контактов</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function retry() {
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+
+            // Try to reload
+            setTimeout(() => {
+                if (navigator.onLine) {
+                    window.location.reload();
+                } else {
+                    loading.classList.remove('show');
+                    alert('Всё ещё нет соединения. Проверь WiFi или мобильные данные.');
+                }
+            }, 1000);
+        }
+
+        // Auto-retry when online
+        window.addEventListener('online', () => {
+            console.log('Connection restored');
+            document.querySelector('.offline-icon').textContent = '✅';
+            document.querySelector('h1').textContent = 'Соединение восстановлено!';
+            document.querySelector('p').textContent = 'Перезагружаю...';
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+
+        // Update icon when offline
+        window.addEventListener('offline', () => {
+            document.querySelector('.offline-icon').textContent = '📡';
+            document.querySelector('h1').textContent = 'Нет соединения';
+        });
+    </script>
+</body>
+</html>

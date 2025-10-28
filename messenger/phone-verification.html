@@ -1,0 +1,440 @@
+<!-- Phone Verification UI Component -->
+<!-- Add this to registration flow -->
+
+<style>
+.phone-verification-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.phone-verification-modal.show {
+    display: flex;
+}
+
+.phone-verification-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.phone-verification-content h2 {
+    text-align: center;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.phone-verification-content p {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.phone-input-group {
+    margin-bottom: 20px;
+}
+
+.phone-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1.1em;
+    text-align: center;
+}
+
+.phone-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.code-input-group {
+    display: none;
+    margin: 20px 0;
+}
+
+.code-input-group.show {
+    display: block;
+}
+
+.code-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.code-digit {
+    width: 50px;
+    height: 60px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 2em;
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+}
+
+.code-digit:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.verification-status {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    display: none;
+}
+
+.verification-status.show {
+    display: block;
+}
+
+.verification-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.verification-status.error {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.verification-status.info {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.resend-code {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.resend-code button {
+    background: none;
+    border: none;
+    color: #667eea;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.resend-code button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
+.verification-timer {
+    text-align: center;
+    color: #999;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+</style>
+
+<!-- Phone Verification Modal -->
+<div id="phoneVerificationModal" class="phone-verification-modal">
+    <div class="phone-verification-content">
+        <h2>📱 Подтверди номер телефона</h2>
+        <p>Мы отправим SMS с кодом подтверждения</p>
+
+        <!-- Phone Input -->
+        <div id="phoneInputStep" class="phone-input-group">
+            <input
+                type="tel"
+                id="phoneNumberInput"
+                class="phone-input"
+                placeholder="+7 (999) 123-45-67"
+                maxlength="20"
+            >
+
+            <button class="btn-action btn-add-friend" onclick="sendVerificationCode()" style="margin-top: 15px;">
+                Отправить код
+            </button>
+        </div>
+
+        <!-- Code Input -->
+        <div id="codeInputStep" class="code-input-group">
+            <p>Введи 6-значный код из SMS</p>
+
+            <div class="code-inputs">
+                <input type="text" class="code-digit" maxlength="1" id="digit1" oninput="moveToNext(this, 'digit2')" onkeydown="handleBackspace(this, event)">
+                <input type="text" class="code-digit" maxlength="1" id="digit2" oninput="moveToNext(this, 'digit3')" onkeydown="handleBackspace(this, event, 'digit1')">
+                <input type="text" class="code-digit" maxlength="1" id="digit3" oninput="moveToNext(this, 'digit4')" onkeydown="handleBackspace(this, event, 'digit2')">
+                <input type="text" class="code-digit" maxlength="1" id="digit4" oninput="moveToNext(this, 'digit5')" onkeydown="handleBackspace(this, event, 'digit3')">
+                <input type="text" class="code-digit" maxlength="1" id="digit5" oninput="moveToNext(this, 'digit6')" onkeydown="handleBackspace(this, event, 'digit4')">
+                <input type="text" class="code-digit" maxlength="1" id="digit6" oninput="verifyCodeWhenComplete()" onkeydown="handleBackspace(this, event, 'digit5')">
+            </div>
+
+            <div class="verification-timer" id="verificationTimer"></div>
+
+            <div class="resend-code">
+                Не получил код?
+                <button id="resendCodeBtn" onclick="resendCode()" disabled>
+                    Отправить снова (<span id="resendTimer">60</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="verificationStatus" class="verification-status"></div>
+
+        <!-- Skip Button (Optional) -->
+        <button class="btn-action btn-invite-friend" onclick="skipPhoneVerification()" style="margin-top: 15px;">
+            Пропустить (добавлю позже)
+        </button>
+    </div>
+</div>
+
+<script>
+let smsServiceUrl = 'http://localhost:5002';
+let currentPhone = '';
+let resendTimerInterval = null;
+let expirationTimerInterval = null;
+
+function openPhoneVerification() {
+    document.getElementById('phoneVerificationModal').classList.add('show');
+    document.getElementById('digit1').focus();
+}
+
+function closePhoneVerification() {
+    document.getElementById('phoneVerificationModal').classList.remove('show');
+}
+
+async function sendVerificationCode() {
+    const phoneInput = document.getElementById('phoneNumberInput');
+    const phone = phoneInput.value.trim();
+
+    if (!phone) {
+        showVerificationStatus('Введи номер телефона', 'error');
+        return;
+    }
+
+    // Normalize phone number
+    let normalizedPhone = phone.replace(/[^\d+]/g, '');
+    if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+' + normalizedPhone;
+    }
+
+    currentPhone = normalizedPhone;
+
+    try {
+        showVerificationStatus('Отправляю SMS...', 'info');
+
+        const response = await fetch(`${smsServiceUrl}/sms/send-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ phone: normalizedPhone })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Ошибка отправки SMS');
+        }
+
+        // Show code input
+        document.getElementById('phoneInputStep').style.display = 'none';
+        document.getElementById('codeInputStep').classList.add('show');
+
+        if (data.test_mode) {
+            showVerificationStatus(`TEST MODE: Код ${data.code}`, 'info');
+        } else {
+            showVerificationStatus('SMS отправлена! Проверь телефон', 'success');
+        }
+
+        // Start timers
+        startResendTimer();
+        startExpirationTimer(600); // 10 minutes
+
+    } catch (error) {
+        showVerificationStatus(error.message, 'error');
+    }
+}
+
+async function verifyCode(code) {
+    try {
+        showVerificationStatus('Проверяю код...', 'info');
+
+        const response = await fetch(`${smsServiceUrl}/sms/verify-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phone: currentPhone,
+                code: code
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || 'Неверный код');
+        }
+
+        // Success!
+        showVerificationStatus('✅ Номер подтверждён!', 'success');
+
+        // Clear code inputs
+        for (let i = 1; i <= 6; i++) {
+            document.getElementById(`digit${i}`).value = '';
+        }
+
+        // Close modal after 2 seconds
+        setTimeout(() => {
+            closePhoneVerification();
+            onPhoneVerified(currentPhone);
+        }, 2000);
+
+    } catch (error) {
+        showVerificationStatus(error.message, 'error');
+
+        // Clear code inputs
+        for (let i = 1; i <= 6; i++) {
+            document.getElementById(`digit${i}`).value = '';
+        }
+        document.getElementById('digit1').focus();
+    }
+}
+
+function verifyCodeWhenComplete() {
+    let code = '';
+    for (let i = 1; i <= 6; i++) {
+        const digit = document.getElementById(`digit${i}`).value;
+        if (!digit) return; // Not all digits entered
+        code += digit;
+    }
+
+    // All 6 digits entered
+    verifyCode(code);
+}
+
+function moveToNext(current, nextId) {
+    if (current.value.length === 1) {
+        const next = document.getElementById(nextId);
+        if (next) {
+            next.focus();
+        }
+    }
+}
+
+function handleBackspace(current, event, previousId) {
+    if (event.key === 'Backspace' && !current.value && previousId) {
+        const previous = document.getElementById(previousId);
+        if (previous) {
+            previous.focus();
+        }
+    }
+}
+
+function startResendTimer() {
+    let seconds = 60;
+    const resendBtn = document.getElementById('resendCodeBtn');
+    const timerSpan = document.getElementById('resendTimer');
+
+    resendBtn.disabled = true;
+
+    resendTimerInterval = setInterval(() => {
+        seconds--;
+        timerSpan.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(resendTimerInterval);
+            resendBtn.disabled = false;
+            timerSpan.textContent = 'Отправить';
+        }
+    }, 1000);
+}
+
+function startExpirationTimer(totalSeconds) {
+    let remaining = totalSeconds;
+    const timerDiv = document.getElementById('verificationTimer');
+
+    expirationTimerInterval = setInterval(() => {
+        remaining--;
+
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        timerDiv.textContent = `Код действителен: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (remaining <= 0) {
+            clearInterval(expirationTimerInterval);
+            timerDiv.textContent = 'Код истёк. Запроси новый';
+            showVerificationStatus('Код истёк. Запроси новый', 'error');
+        }
+    }, 1000);
+}
+
+async function resendCode() {
+    clearInterval(resendTimerInterval);
+    clearInterval(expirationTimerInterval);
+
+    // Clear code inputs
+    for (let i = 1; i <= 6; i++) {
+        document.getElementById(`digit${i}`).value = '';
+    }
+
+    // Go back to phone input
+    document.getElementById('phoneInputStep').style.display = 'block';
+    document.getElementById('codeInputStep').classList.remove('show');
+
+    showVerificationStatus('', '');
+}
+
+function showVerificationStatus(message, type) {
+    const status = document.getElementById('verificationStatus');
+
+    if (!message) {
+        status.classList.remove('show');
+        return;
+    }
+
+    status.className = `verification-status ${type} show`;
+    status.textContent = message;
+}
+
+function skipPhoneVerification() {
+    if (confirm('Ты уверен? Подтверждение номера повышает безопасность.')) {
+        closePhoneVerification();
+    }
+}
+
+function onPhoneVerified(phone) {
+    console.log('Phone verified:', phone);
+
+    // Store verified phone in user profile
+    if (typeof currentUser !== 'undefined') {
+        currentUser.phone = phone;
+        currentUser.phoneVerified = true;
+    }
+
+    // Show success notification
+    if (typeof showNotification !== 'undefined') {
+        showNotification('Номер телефона подтверждён! 🎉', 'success');
+    }
+}
+
+// Auto-open if phone not verified
+document.addEventListener('DOMContentLoaded', () => {
+    // Uncomment to auto-show on registration
+    // setTimeout(() => openPhoneVerification(), 2000);
+});
+</script>
