@@ -553,8 +553,8 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5000';
-        const AI_URL = 'http://localhost:8000';
+        const API_URL = 'http://21.0.0.192:5000';
+        const AI_URL = 'http://21.0.0.192:8000';
         let currentUser = null;
         let authToken = null;
         let activeConversationId = null;
@@ -664,7 +664,7 @@
 
         // WebSocket
         function connectWebSocket() {
-            ws = new WebSocket(`ws://localhost:5000/ws/${authToken}`);
+            ws = new WebSocket(`ws://21.0.0.192:5000/ws/${authToken}`);
 
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
