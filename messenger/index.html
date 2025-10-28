@@ -2,8 +2,23 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🔐 AChat - Защищённый Мессенджер</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Самый защищённый мессенджер с AI модерацией">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AChat">
+
+    <!-- PWA Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
     <style>
         * {
             margin: 0;
@@ -437,6 +452,11 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
         }
 
         .message {
@@ -890,6 +910,58 @@
                     }
                 });
             }
+
+            // Register Service Worker for PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            }
+
+            // Prompt to install PWA
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+
+                // Show install button after 5 seconds
+                setTimeout(() => {
+                    if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                        const installBanner = document.createElement('div');
+                        installBanner.style.cssText = `
+                            position: fixed;
+                            bottom: 20px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 15px 25px;
+                            border-radius: 30px;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                            z-index: 10000;
+                            cursor: pointer;
+                            font-weight: 600;
+                            animation: slideUp 0.5s ease;
+                        `;
+                        installBanner.innerHTML = '📱 Установить AChat как приложение';
+                        installBanner.onclick = async () => {
+                            deferredPrompt.prompt();
+                            const { outcome } = await deferredPrompt.userChoice;
+                            console.log('User response:', outcome);
+                            deferredPrompt = null;
+                            installBanner.remove();
+                        };
+                        document.body.appendChild(installBanner);
+
+                        // Auto-hide after 10 seconds
+                        setTimeout(() => installBanner.remove(), 10000);
+                    }
+                }, 5000);
+            });
         });
     </script>
 </body>
